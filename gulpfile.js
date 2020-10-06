@@ -35,7 +35,9 @@ let { src, dest } = require('gulp'),
     groupMediaQueries = require('gulp-group-css-media-queries'),
     imageMin = require('gulp-imagemin'),
     webp = require('gulp-webp'),
-    webpHtml = require('gulp-webp-html');
+    webpHtml = require('gulp-webp-html'),
+    replace = require('gulp-replace'),
+    fs = require('fs');
 
 function browserSync(params) {
     browsersync.init({
@@ -103,6 +105,15 @@ function images() {
         .pipe(browsersync.stream())
 }
 
+function inject() {
+    return src([project_folder + '/index.html'])
+        .pipe(replace('<link rel="stylesheet" href="css/style.css">', function () {
+            let css = fs.readFileSync(project_folder + '/css/style.css', 'utf8')
+            return '<style amp-custom>\n'+ css +'\n</style>'
+        }))
+        .pipe(dest(path.build.html));
+}
+
 function watchFiles(params) {
     gulp.watch([path.watch.html], html);
     gulp.watch([path.watch.css], css)
@@ -114,9 +125,10 @@ function clean(params) {
     return del(path.clean);
 }
 
-let build = gulp.series(clean, gulp.parallel(js, css, html, images));
-let watch = gulp.parallel(build, watchFiles, browserSync);
+let build = gulp.series(clean, gulp.parallel(js, css, html, images), inject);
+let watch = gulp.parallel(build,  watchFiles, browserSync);
 
+exports.inject = inject;
 exports.js = css;
 exports.css = css;
 exports.html = html;
